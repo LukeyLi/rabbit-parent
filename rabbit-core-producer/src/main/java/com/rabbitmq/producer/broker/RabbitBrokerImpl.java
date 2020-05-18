@@ -37,6 +37,7 @@ public class RabbitBrokerImpl implements RabbitBroker {
      * @param message
      */
     private void sendKernel(Message message) {
+        AsyncBaseQueue.submit((Runnable)()->{
         CorrelationData correlationData = new CorrelationData(String.format("%s#%s",
                 message.getMessageId(),
                 System.currentTimeMillis()));
@@ -44,6 +45,7 @@ public class RabbitBrokerImpl implements RabbitBroker {
         String routingKey = message.getRoutingKey();
         rabbitTemplate.convertAndSend(topic, routingKey, message, correlationData);
         log.info("#RabbitBrokerImpl.sendKernel#, messageId:{}", message.getMessageId());
+        });
     }
 
 }
