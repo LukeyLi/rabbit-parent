@@ -1,6 +1,7 @@
 package com.rabbitmq.producer.broker;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.collect.Maps;
 import com.rabbitmq.api.Message;
 import com.rabbitmq.api.MessageType;
@@ -14,6 +15,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,10 +28,12 @@ import java.util.Map;
 public class RabbitTemplateContainer implements RabbitTemplate.ConfirmCallback {
     private Map<String, RabbitTemplate> rabbitMap = Maps.newConcurrentMap();
 
+    private Splitter splitter = Splitter.on("#");
+
     @Autowired
     private ConnectionFactory connectionFactory;
 
-    public RabbitTemplate getTemplate(Message message) throws MessageException {
+    public RabbitTemplate getTemplate(Message message) throws MessageRunTimeException {
         Preconditions.checkNotNull(message);
         String topic = message.getTopic();
 
@@ -57,7 +61,15 @@ public class RabbitTemplateContainer implements RabbitTemplate.ConfirmCallback {
     }
 
     @Override
-    public void confirm(@Nullable CorrelationData correlationData, boolean b, @Nullable String s) {
+    public void confirm(@Nullable CorrelationData correlationData, boolean ack, @Nullable String s) {
         //具体的消息应答
+        List<String> ids = splitter.splitToList(correlationData.getId());
+        String messgeId = ids.get(0);
+        long sendTime = Long.parseLong(ids.get(1));
+        if (ack) {
+            log.info("send message is Ok,confirm messageId: {}, sendTime:{}", messgeId, sendTime);
+        } else {
+            log.error("send message is failed,confirm messageId: {}, sendTime:{}", messgeId, sendTime);
+        }
     }
 }

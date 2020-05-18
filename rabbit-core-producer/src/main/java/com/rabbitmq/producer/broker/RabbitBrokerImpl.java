@@ -15,7 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 @Slf4j
 public class RabbitBrokerImpl implements RabbitBroker {
     @Autowired
-    private RabbitTemplate rabbitTemplate;
+    private RabbitTemplateContainer rabbitTemplateContainer;
     @Override
     public void rapidSend(Message message) {
         message.setMessageType(MessageType.RAPID);
@@ -43,6 +43,7 @@ public class RabbitBrokerImpl implements RabbitBroker {
                 System.currentTimeMillis()));
         String topic = message.getTopic();
         String routingKey = message.getRoutingKey();
+        RabbitTemplate rabbitTemplate = rabbitTemplateContainer.getTemplate(message);
         rabbitTemplate.convertAndSend(topic, routingKey, message, correlationData);
         log.info("#RabbitBrokerImpl.sendKernel#, messageId:{}", message.getMessageId());
         });
