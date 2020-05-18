@@ -5,7 +5,11 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Maps;
 import com.rabbitmq.api.Message;
 import com.rabbitmq.api.MessageType;
-import com.rabbitmq.api.exception.MessageException;
+import com.rabbitmq.api.exception.MessageRunTimeException;
+import com.rabbitmq.common.convert.GenericMessageConverter;
+import com.rabbitmq.common.convert.RabbitMessageConverter;
+import com.rabbitmq.common.serializer.Serializer;
+import com.rabbitmq.common.serializer.SerializerFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
@@ -20,6 +24,9 @@ import java.util.Map;
 
 /**
  * @description:
+ * 每个topic,对应一个rabbitTemplate,
+ * 1. 提高发送效率
+ * 2. 可以根据不同的需求制定不同的rabbitTemplate,每个topic 都有自己的routingKey规则
  * @author: lzy
  * @create: 2020-05-18 21:54
  **/
@@ -32,6 +39,8 @@ public class RabbitTemplateContainer implements RabbitTemplate.ConfirmCallback {
 
     @Autowired
     private ConnectionFactory connectionFactory;
+    @Autowired
+    private SerializerFactory serializerFactory;
 
     public RabbitTemplate getTemplate(Message message) throws MessageRunTimeException {
         Preconditions.checkNotNull(message);
@@ -47,8 +56,12 @@ public class RabbitTemplateContainer implements RabbitTemplate.ConfirmCallback {
         rabbitTemplate.setExchange(topic);
         newRabbitTemplate.setRetryTemplate(new RetryTemplate());
         newRabbitTemplate.setRoutingKey(message.getRoutingKey());
-        //todo message序列化方式
-        // newRabbitTemplate.setMessageConverter();
+        // 添加对于自定义Message对象序列化反序列和converter对象
+        Serializer serializer = serializerFactory.create();
+        GenericMessageConverter gmc = new GenericMessageConverter(serializer);
+        // 装饰GenericMessageConverter
+        RabbitMessageConverter rmc = new RabbitMessageConverter(gmc);
+        newRabbitTemplate.setMessageConverter(rmc);
 
         String messageType = message.getMessageType();
         //除了迅速消息，其他都要confirm
