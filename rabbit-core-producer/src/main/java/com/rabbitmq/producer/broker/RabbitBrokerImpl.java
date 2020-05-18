@@ -28,7 +28,7 @@ public class RabbitBrokerImpl implements RabbitBroker {
     }
 
     @Override
-    public void raliantSend(Message message) {
+    public void reliantSend(Message message) {
 
     }
 

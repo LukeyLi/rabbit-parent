@@ -13,6 +13,6 @@ public interface RabbitBroker {
 
     void confirmSend(Message message);
 
-    void raliantSend(Message message);
+    void reliantSend(Message message);
 
 }
