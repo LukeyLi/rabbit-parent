@@ -11,6 +11,7 @@ import com.rabbitmq.common.convert.RabbitMessageConverter;
 import com.rabbitmq.common.serializer.Serializer;
 import com.rabbitmq.common.serializer.SerializerFactory;
 import com.rabbitmq.common.serializer.impl.JacksonSerializerFactory;
+import com.rabbitmq.producer.service.MessageStoreService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
@@ -40,6 +41,8 @@ public class RabbitTemplateContainer implements RabbitTemplate.ConfirmCallback {
 
     @Autowired
     private ConnectionFactory connectionFactory;
+    @Autowired
+    private MessageStoreService messageStoreService;
 
     private SerializerFactory serializerFactory = JacksonSerializerFactory.INSTANCE;
 
@@ -81,6 +84,7 @@ public class RabbitTemplateContainer implements RabbitTemplate.ConfirmCallback {
         String messgeId = ids.get(0);
         long sendTime = Long.parseLong(ids.get(1));
         if (ack) {
+            this.messageStoreService.success(messgeId);
             log.info("send message is Ok,confirm messageId: {}, sendTime:{}", messgeId, sendTime);
         } else {
             log.error("send message is failed,confirm messageId: {}, sendTime:{}", messgeId, sendTime);

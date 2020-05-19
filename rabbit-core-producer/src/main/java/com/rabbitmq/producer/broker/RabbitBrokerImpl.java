@@ -2,10 +2,17 @@ package com.rabbitmq.producer.broker;
 
 import com.rabbitmq.api.Message;
 import com.rabbitmq.api.MessageType;
+import com.rabbitmq.producer.constant.BrokerMessageConst;
+import com.rabbitmq.producer.constant.BrokerMessageStatus;
+import com.rabbitmq.producer.entity.BrokerMessage;
+import com.rabbitmq.producer.service.MessageStoreService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.Date;
 
 /**
  * @description:
@@ -16,6 +23,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class RabbitBrokerImpl implements RabbitBroker {
     @Autowired
     private RabbitTemplateContainer rabbitTemplateContainer;
+
+    @Autowired
+    private MessageStoreService messageStoreService;
+
     @Override
     public void rapidSend(Message message) {
         message.setMessageType(MessageType.RAPID);
@@ -30,7 +41,19 @@ public class RabbitBrokerImpl implements RabbitBroker {
 
     @Override
     public void reliantSend(Message message) {
-
+        message.setMessageType(MessageType.RELIANT);
+        // 数据库消息发送日志记录
+        Date now = new Date();
+        BrokerMessage brokerMessage = new BrokerMessage();
+        brokerMessage.setMessageId(message.getMessageId());
+        brokerMessage.setStatus(BrokerMessageStatus.SENDING.getCode());
+        brokerMessage.setNextRetry(DateUtils.addMinutes(now, BrokerMessageConst.TIMEOUT));
+        brokerMessage.setCreateTime(now);
+        brokerMessage.setUpdateTime(now);
+        brokerMessage.setMessage(message);
+        messageStoreService.insert(brokerMessage);
+        //执行发送消息
+        sendKernel(message);
     }
 
     /**
