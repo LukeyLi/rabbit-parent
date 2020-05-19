@@ -38,8 +38,8 @@ public class MessageBuilder {
         return this;
     }
 
-    public MessageBuilder withTopci(String topc) {
-        this.topic = topc;
+    public MessageBuilder withTopic(String topic) {
+        this.topic = topic;
         return this;
     }
     public MessageBuilder withRoutingKey(String routingKey) {

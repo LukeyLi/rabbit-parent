@@ -10,6 +10,7 @@ import com.rabbitmq.common.convert.GenericMessageConverter;
 import com.rabbitmq.common.convert.RabbitMessageConverter;
 import com.rabbitmq.common.serializer.Serializer;
 import com.rabbitmq.common.serializer.SerializerFactory;
+import com.rabbitmq.common.serializer.impl.JacksonSerializerFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
@@ -39,8 +40,8 @@ public class RabbitTemplateContainer implements RabbitTemplate.ConfirmCallback {
 
     @Autowired
     private ConnectionFactory connectionFactory;
-    @Autowired
-    private SerializerFactory serializerFactory;
+
+    private SerializerFactory serializerFactory = JacksonSerializerFactory.INSTANCE;
 
     public RabbitTemplate getTemplate(Message message) throws MessageRunTimeException {
         Preconditions.checkNotNull(message);
