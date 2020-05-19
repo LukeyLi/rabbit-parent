@@ -24,7 +24,7 @@ public class ProducerClient implements MessageProducer {
 
     @Override
     public void send(Message message, SendCallback sendCallback) throws MessageRunTimeException {
-
+        rabbitBroker.sendCallback(message, sendCallback);
     }
 
     @Override

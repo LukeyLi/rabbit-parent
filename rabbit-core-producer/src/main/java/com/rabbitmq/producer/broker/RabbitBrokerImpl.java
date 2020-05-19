@@ -2,6 +2,7 @@ package com.rabbitmq.producer.broker;
 
 import com.rabbitmq.api.Message;
 import com.rabbitmq.api.MessageType;
+import com.rabbitmq.api.SendCallback;
 import com.rabbitmq.producer.constant.BrokerMessageConst;
 import com.rabbitmq.producer.constant.BrokerMessageStatus;
 import com.rabbitmq.producer.entity.BrokerMessage;
@@ -13,6 +14,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Date;
+import java.util.concurrent.ExecutionException;
 
 /**
  * @description:
@@ -57,6 +59,42 @@ public class RabbitBrokerImpl implements RabbitBroker {
         }
         //执行发送消息
         sendKernel(message);
+    }
+
+    @Override
+    public void sendCallback(Message message, SendCallback sendCallback) {
+        message.setMessageType(MessageType.CONFIRM);
+        if (null != sendCallback){
+            sendCallbackMessage(message, sendCallback);
+        } else {
+            sendKernel(message);
+        }
+    }
+
+    private void sendCallbackMessage(Message message, SendCallback sendCallback) {
+        CallbackAsyncQueue.submit((Runnable) ()->{
+            CorrelationData correlationData = new CorrelationData(String.format("%s#%s#%s"
+                    , message.getMessageId()
+                    , System.currentTimeMillis()
+                    , message.getMessageType()));
+            String topic = message.getTopic();
+            String routingKey = message.getRoutingKey();
+            RabbitTemplate rabbitTemplate = rabbitTemplateContainer.getTemplate(message);
+            rabbitTemplate.convertAndSend(topic, routingKey, message, correlationData);
+            log.info("#RabbitBrokerImpl.sendCallbackMessage# send to rabbitmq messageId: {}", message.getMessageId());
+
+            try {
+                if (correlationData.getFuture().get().isAck()){
+                    sendCallback.onSuccess();
+                }else {
+                    sendCallback.onFailure();
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     /**
